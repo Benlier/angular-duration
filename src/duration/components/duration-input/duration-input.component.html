@@ -1,12 +1,11 @@
-<mat-form-field class="example-full-width">
-
-<input
-    matInput
-    (input)="valueChangeEvent($event)"
-    (paste)="pasteEvent($event)"
-    [ngModel]="displayValue | duration:durationMask"
-    class="invisible-caret"
-    spellcheck="false"
-    placeholder="duration"
->
+<mat-form-field>
+    <input
+        matInput
+        (input)="onInputEvent($event)"
+        (paste)="onPasteEvent($event)"
+        [formControl]="displayText"
+        class="invisible-caret"
+        spellcheck="false"
+        placeholder="duration"
+    >
 </mat-form-field>

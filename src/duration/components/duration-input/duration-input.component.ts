@@ -1,7 +1,7 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
-import { Time } from '@angular/common';
+import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
 import { DurationMask } from 'src/duration/model/DurationMask';
 import { durationMaskOptions } from 'src/duration/model/DurationMaskOption';
+import { FormControl } from '@angular/forms';
 
 @Component({
   selector: 'app-duration-input',
@@ -10,43 +10,73 @@ import { durationMaskOptions } from 'src/duration/model/DurationMaskOption';
 })
 export class DurationInputComponent implements OnInit {
 
-  displayValue = 0;
-  durationMask: DurationMask = [durationMaskOptions.hour, durationMaskOptions.minute, durationMaskOptions.second];
-  maxDisplayValueLength = this.durationMask.reduce<number>((digitAmount, maskOption) => digitAmount + maskOption.digitAmount, 0);
+  // reversed to start iterating digits from the back so input that overflows digits[] isn't accounted for
+  private reversedMask: DurationMask;
+  private digits: number[];
+  private displayText = new FormControl('');
 
-  constructor(private changeDetector: ChangeDetectorRef) { }
+  constructor(private changeDetector: ChangeDetectorRef) {}
 
-  ngOnInit() {
+  ngOnInit(@Input() durationMask?: DurationMask, @Input() initialValue?: number) {
+    const defaultMask: DurationMask = [durationMaskOptions.hour, durationMaskOptions.minute, durationMaskOptions.second];
+    this.reversedMask = (durationMask || defaultMask).reverse();
+    this.digits = initialValue ? initialValue.toString().split('').map(x => Number(x)) : [];
+    this.refreshDisplayValue();
   }
 
-  valueChangeEvent(event: any) {
+  onInputEvent(event: any) {
     if (isInsertEvent(event)) {
-      if (this.displayValue.toString().length < this.maxDisplayValueLength) {
-        this.displayValue = this.displayValue + event.data;
+      if (!isNaN(Number(event.data))) {
+        this.nextDigit(event.data);
       }
     }
     if (isDeleteEvent(event)) {
-      this.displayValue = Math.floor(this.displayValue / 10);
+      this.removeLastDigit();
     }
+    this.refreshDisplayValue();
+  }
+
+  onPasteEvent(event: any) {
+    const pastedText = event.clipboardData.getData('text');
+    const newNumbers = pastedText.replace(/\D+/g, '');
+
+    this.digits = [];
+    newNumbers.split('').forEach((newNumber: number) => {
+      this.nextDigit(newNumber);
+    });
 
     this.refreshDisplayValue();
   }
 
-  pasteEvent(event: any) {
-    const pastedText = event.clipboardData.getData('text');
-    const numberPattern = /\d+/g;
-    this.displayValue = pastedText.match(numberPattern);
+  nextDigit(nextDigit: number) {
+    this.digits.push(nextDigit);
+  }
+
+  removeLastDigit() {
+      this.digits.pop();
   }
 
   refreshDisplayValue() {
-    ++this.displayValue;
-    this.changeDetector.detectChanges();
-    --this.displayValue;
+    this.displayText.setValue(this.getDisplayText());
+  }
+
+  getDisplayText(): string {
+    const safeDigits = [...this.digits];
+    let displayText = '';
+
+    for (const maskOption of this.reversedMask) {
+        displayText = maskOption.suffix + displayText;
+        const digitAmount = maskOption.maxValue.toString().length;
+        for (const iterator of Array(digitAmount)) {
+            displayText = (safeDigits.pop() || 0) + displayText;
+        }
+        displayText = ' ' + displayText;
+    }
+    return displayText.slice(1); // remove prefixing front space
   }
 }
 
 function isInsertEvent(event: any): boolean {
-
   // inputTypes as defined by mozilla docs https://rawgit.com/w3c/input-events/v1/index.html#interface-InputEvent-Attributes
   const insertEventTypes: string[] = [
     'insertText'
@@ -56,7 +86,6 @@ function isInsertEvent(event: any): boolean {
 }
 
 function isDeleteEvent(event: any): boolean {
-
   // inputTypes as defined by mozilla docs https://rawgit.com/w3c/input-events/v1/index.html#interface-InputEvent-Attributes
   const deleteEventTypes: string[] = [
     'deleteContentBackward'
