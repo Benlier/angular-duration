@@ -3,6 +3,7 @@
         matInput
         (input)="onInputEvent($event)"
         (paste)="onPasteEvent($event)"
+        (focusout)="onDeselectEvent()"
         [formControl]="displayText"
         class="invisible-caret"
         spellcheck="false"

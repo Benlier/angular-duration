@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
 import { DurationMask } from 'src/duration/model/DurationMask';
-import { durationMaskOptions } from 'src/duration/model/DurationMaskOption';
+import { durationMaskOptions, DurationMaskOption } from 'src/duration/model/DurationMaskOption';
 import { FormControl } from '@angular/forms';
 
 @Component({
@@ -48,6 +48,11 @@ export class DurationInputComponent implements OnInit {
     this.refreshDisplayValue();
   }
 
+  onDeselectEvent() {
+    this.digits = formatDigits(this.digits, this.reversedMask);
+    this.refreshDisplayValue();
+  }
+
   nextDigit(nextDigit: number) {
     this.digits.push(nextDigit);
   }
@@ -57,10 +62,10 @@ export class DurationInputComponent implements OnInit {
   }
 
   refreshDisplayValue() {
-    this.displayText.setValue(this.getDisplayText());
+    this.displayText.setValue(this.toString());
   }
 
-  getDisplayText(): string {
+  toString(): string {
     const safeDigits = [...this.digits];
     let displayText = '';
 
@@ -76,20 +81,36 @@ export class DurationInputComponent implements OnInit {
   }
 }
 
+function formatDigits(digits: number[], reversedMask: DurationMask): number[] {
+  const maskDigitAmount = inferMaskDigitAmount( reversedMask);
+  let formattedDigits: number[] = [];
+  let carry = 0;
+
+  reversedMask.forEach((maskOption: DurationMaskOption) => {
+    const digitAmount = maskOption.maxValue.toString().length;
+    const inputtedValue: number = Number(digits.splice(-digitAmount).toString().replace(/\D+/g, '')) + carry;
+    const formattedValue: number = inputtedValue % maskOption.maxValue;
+    carry = Math.floor(inputtedValue / maskOption.maxValue);
+    formattedDigits = [...formattedValue.toString().padStart(digitAmount, '0').split('').map(digit => Number(digit)), ...formattedDigits];
+  });
+
+  digits.push(...formattedDigits);
+  console.log(digits);
+  return digits;
+}
+
+function inferMaskDigitAmount(mask: DurationMask): number {
+  return mask.reduce((sum: number, maskOption: DurationMaskOption) => sum += maskOption.maxValue, 0);
+}
+
 function isInsertEvent(event: any): boolean {
   // inputTypes as defined by mozilla docs https://rawgit.com/w3c/input-events/v1/index.html#interface-InputEvent-Attributes
-  const insertEventTypes: string[] = [
-    'insertText'
-  ];
-
+  const insertEventTypes: string[] = ['insertText'];
   return insertEventTypes.includes(event.inputType);
 }
 
 function isDeleteEvent(event: any): boolean {
   // inputTypes as defined by mozilla docs https://rawgit.com/w3c/input-events/v1/index.html#interface-InputEvent-Attributes
-  const deleteEventTypes: string[] = [
-    'deleteContentBackward'
-  ];
-
+  const deleteEventTypes: string[] = ['deleteContentBackward'];
   return deleteEventTypes.includes(event.inputType);
 }
