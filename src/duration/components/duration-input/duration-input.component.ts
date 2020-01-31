@@ -1,21 +1,43 @@
-import { Component, OnInit, ChangeDetectorRef, Input } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Input, forwardRef } from '@angular/core';
 import { DurationMask } from 'src/duration/model/DurationMask';
 import { durationMaskOptions, DurationMaskOption } from 'src/duration/model/DurationMaskOption';
-import { FormControl } from '@angular/forms';
+import { FormControl, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 @Component({
   selector: 'app-duration-input',
   templateUrl: './duration-input.component.html',
-  styleUrls: ['./duration-input.component.scss']
+  styleUrls: ['./duration-input.component.scss'],
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => DurationInputComponent),
+      multi: true
+    }
+  ]
 })
-export class DurationInputComponent implements OnInit {
-
+export class DurationInputComponent implements OnInit, ControlValueAccessor	 {
+  constructor(private changeDetector: ChangeDetectorRef) {}
   // reversed to start iterating digits from the back so input that overflows digits[] isn't accounted for
   private reversedMask: DurationMask;
   private digits: number[];
   private displayText = new FormControl('');
+  writeValue(digits: number[]): void {
+    console.log(digits);
+    this.digits = digits;
+    this.refreshDisplayValue();
+    this.displayText.setValue(this.toString());
+  }
 
-  constructor(private changeDetector: ChangeDetectorRef) {}
+  private propagateChange = (_: any) => {};
+  registerOnChange(fn: any): void {
+    this.propagateChange(fn);
+  }
+
+  private propagateTouched = (_: any) => {};
+  registerOnTouched(fn: any): void {
+    this.propagateTouched(fn);
+  }
+
 
   ngOnInit(@Input() durationMask?: DurationMask, @Input() initialValue?: number) {
     const defaultMask: DurationMask = [durationMaskOptions.hour, durationMaskOptions.minute, durationMaskOptions.second];
@@ -51,6 +73,7 @@ export class DurationInputComponent implements OnInit {
   onDeselectEvent() {
     this.digits = formatDigits(this.digits, this.reversedMask);
     this.refreshDisplayValue();
+    this.propagateChange(this.digits);
   }
 
   nextDigit(nextDigit: number) {
@@ -77,7 +100,7 @@ export class DurationInputComponent implements OnInit {
         }
         displayText = ' ' + displayText;
     }
-    return displayText.slice(1); // remove prefixing front space
+    return displayText; // remove prefixing front space
   }
 }
 
@@ -95,7 +118,6 @@ function formatDigits(digits: number[], reversedMask: DurationMask): number[] {
   });
 
   digits.push(...formattedDigits);
-  console.log(digits);
   return digits;
 }
 
