@@ -1,7 +1,9 @@
-import { Component, OnInit, ChangeDetectorRef, Input, forwardRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, Input, forwardRef, OnChanges, SimpleChanges } from '@angular/core';
 import { DurationMask } from 'src/duration/model/DurationMask';
-import { durationMaskOptions, DurationMaskOption } from 'src/duration/model/DurationMaskOption';
+import { durationMaskOptions } from 'src/duration/model/DurationMaskOption';
 import { FormControl, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
+import { DurationInput } from 'src/duration/model/DurationInput';
+import { Duration } from 'src/duration/model/Duration';
 
 @Component({
   selector: 'app-duration-input',
@@ -16,44 +18,43 @@ import { FormControl, ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/f
   ]
 })
 export class DurationInputComponent implements OnInit, ControlValueAccessor	 {
-  constructor(private changeDetector: ChangeDetectorRef) {}
-  // reversed to start iterating digits from the back so input that overflows digits[] isn't accounted for
-  private reversedMask: DurationMask;
-  private digits: number[];
-  private displayText = new FormControl('');
-  writeValue(digits: number[]): void {
-    console.log(digits);
-    this.digits = digits;
-    this.refreshDisplayValue();
-    this.displayText.setValue(this.toString());
-  }
 
-  private propagateChange = (_: any) => {};
-  registerOnChange(fn: any): void {
-    this.propagateChange(fn);
-  }
+  private duration: DurationInput;
+  private displayText: FormControl;
+  private onChange: (newValue: Duration) => void;
 
-  private propagateTouched = (_: any) => {};
-  registerOnTouched(fn: any): void {
-    this.propagateTouched(fn);
-  }
-
-
-  ngOnInit(@Input() durationMask?: DurationMask, @Input() initialValue?: number) {
+  ngOnInit(@Input() initialValue?: Duration, @Input() durationMask?: DurationMask) {
     const defaultMask: DurationMask = [durationMaskOptions.hour, durationMaskOptions.minute, durationMaskOptions.second];
-    this.reversedMask = (durationMask || defaultMask).reverse();
-    this.digits = initialValue ? initialValue.toString().split('').map(x => Number(x)) : [];
+    this.duration = new DurationInput(durationMask || defaultMask, initialValue);
+    this.displayText = new FormControl(this.duration.toString());
+  }
+
+  writeValue(digits: number[]): void {
+    this.duration.digits = digits;
     this.refreshDisplayValue();
   }
+
+  registerOnChange(fn: any): void {
+    this.onChange = fn;
+  }
+
+  registerOnTouched(fn: any): void {
+  }
+
+  refreshDisplayValue() {
+    this.displayText.setValue(this.duration.toString());
+  }
+
+  // UIEvents-------------------------------------------
 
   onInputEvent(event: any) {
     if (isInsertEvent(event)) {
       if (!isNaN(Number(event.data))) {
-        this.nextDigit(event.data);
+        this.duration.nextDigit(event.data);
       }
     }
     if (isDeleteEvent(event)) {
-      this.removeLastDigit();
+      this.duration.removeLastDigit();
     }
     this.refreshDisplayValue();
   }
@@ -62,67 +63,20 @@ export class DurationInputComponent implements OnInit, ControlValueAccessor	 {
     const pastedText = event.clipboardData.getData('text');
     const newNumbers = pastedText.replace(/\D+/g, '');
 
-    this.digits = [];
     newNumbers.split('').forEach((newNumber: number) => {
-      this.nextDigit(newNumber);
+      this.duration.nextDigit(newNumber);
     });
 
     this.refreshDisplayValue();
   }
 
   onDeselectEvent() {
-    this.digits = formatDigits(this.digits, this.reversedMask);
+    this.duration.formatDigits();
     this.refreshDisplayValue();
-    this.propagateChange(this.digits);
+    this.onChange(this.duration.toDuration());
   }
 
-  nextDigit(nextDigit: number) {
-    this.digits.push(nextDigit);
-  }
 
-  removeLastDigit() {
-      this.digits.pop();
-  }
-
-  refreshDisplayValue() {
-    this.displayText.setValue(this.toString());
-  }
-
-  toString(): string {
-    const safeDigits = [...this.digits];
-    let displayText = '';
-
-    for (const maskOption of this.reversedMask) {
-        displayText = maskOption.suffix + displayText;
-        const digitAmount = maskOption.maxValue.toString().length;
-        for (const iterator of Array(digitAmount)) {
-            displayText = (safeDigits.pop() || 0) + displayText;
-        }
-        displayText = ' ' + displayText;
-    }
-    return displayText; // remove prefixing front space
-  }
-}
-
-function formatDigits(digits: number[], reversedMask: DurationMask): number[] {
-  const maskDigitAmount = inferMaskDigitAmount( reversedMask);
-  let formattedDigits: number[] = [];
-  let carry = 0;
-
-  reversedMask.forEach((maskOption: DurationMaskOption) => {
-    const digitAmount = maskOption.maxValue.toString().length;
-    const inputtedValue: number = Number(digits.splice(-digitAmount).toString().replace(/\D+/g, '')) + carry;
-    const formattedValue: number = inputtedValue % maskOption.maxValue;
-    carry = Math.floor(inputtedValue / maskOption.maxValue);
-    formattedDigits = [...formattedValue.toString().padStart(digitAmount, '0').split('').map(digit => Number(digit)), ...formattedDigits];
-  });
-
-  digits.push(...formattedDigits);
-  return digits;
-}
-
-function inferMaskDigitAmount(mask: DurationMask): number {
-  return mask.reduce((sum: number, maskOption: DurationMaskOption) => sum += maskOption.maxValue, 0);
 }
 
 function isInsertEvent(event: any): boolean {
