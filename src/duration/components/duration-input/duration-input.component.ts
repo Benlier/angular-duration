@@ -20,7 +20,7 @@ import { Duration } from 'src/duration/model/Duration';
 export class DurationInputComponent implements OnInit, ControlValueAccessor	 {
 
   private duration: DurationInput;
-  private displayText: FormControl;
+  public displayText: FormControl;
   private onChange: (newValue: Duration) => void;
 
   ngOnInit(@Input() initialValue?: Duration, @Input() durationMask?: DurationMask) {

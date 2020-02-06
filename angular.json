@@ -142,5 +142,8 @@
       }
     }
   },
-  "defaultProject": "duration-value-accessor"
+  "defaultProject": "duration-value-accessor",
+  "cli": {
+    "analytics": "e758a4c1-544b-43bb-9a4f-c40411ff1a03"
+  }
 }
