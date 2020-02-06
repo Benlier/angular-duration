@@ -17,6 +17,7 @@
         "build": {
           "builder": "@angular-devkit/build-angular:browser",
           "options": {
+            "aot": true,
             "outputPath": "dist/duration-value-accessor",
             "index": "src/index.html",
             "main": "src/main.ts",
@@ -54,6 +55,10 @@
                   "type": "initial",
                   "maximumWarning": "2mb",
                   "maximumError": "5mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "6kb"
                 }
               ]
             }
@@ -137,5 +142,8 @@
       }
     }
   },
-  "defaultProject": "duration-value-accessor"
+  "defaultProject": "duration-value-accessor",
+  "cli": {
+    "analytics": "e758a4c1-544b-43bb-9a4f-c40411ff1a03"
+  }
 }

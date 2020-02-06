@@ -1,12 +1,9 @@
-<mat-form-field>
-    <input
-        matInput
-        (input)="onInputEvent($event)"
-        (paste)="onPasteEvent($event)"
-        (focusout)="onDeselectEvent()"
-        [formControl]="displayText"
-        class="invisible-caret"
-        spellcheck="false"
-        placeholder="duration"
-    >
-</mat-form-field>
+<input
+    [formControl]="displayText"
+    (input)="onInputEvent($event)"
+    (paste)="onPasteEvent($event)"
+    (focusout)="onDeselectEvent()"
+    class="invisible-caret"
+    spellcheck="false"
+    placeholder="duration"
+>

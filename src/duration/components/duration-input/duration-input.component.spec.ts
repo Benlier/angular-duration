@@ -2,7 +2,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { DurationInputComponent } from './duration-input.component';
 
-describe('DurationInputComponent', () => {
+xdescribe('DurationInputComponent', () => {
   let component: DurationInputComponent;
   let fixture: ComponentFixture<DurationInputComponent>;
 
